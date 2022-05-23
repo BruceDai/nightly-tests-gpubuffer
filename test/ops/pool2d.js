@@ -41,6 +41,39 @@ describe('test pool2d', async function() {
     utils.checkValue(await utils.readbackGPUBuffer(device, utils.sizeOfShape([1, 2, 2, 1]), outputBuffer), expected);
   });
 
+  it('maxPool2d dilations default', async function() {
+    const builder = new MLGraphBuilder(context);
+    const x = builder.input('x', {type: 'float32', dimensions: [1, 1, 4, 4]});
+    const windowDimensions = [2, 2];
+    const dilations = [2, 2];
+    const y = builder.maxPool2d(x, {windowDimensions, dilations});
+    const graph = builder.build({y});
+    const inputBuffer = await utils.createGPUBuffer(device, utils.sizeOfShape([1, 1, 4, 4]), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+	const inputs = {'x': {resource: inputBuffer}};
+    const outputBuffer = await utils.createGPUBuffer(device, utils.sizeOfShape([1, 1, 2, 2]));
+    const outputs = {'y': {resource: outputBuffer}};
+    graph.compute(inputs, outputs);
+    const expected = [11, 12, 15, 16];
+    utils.checkValue(await utils.readbackGPUBuffer(device, utils.sizeOfShape([1, 1, 2, 2]), outputBuffer), expected);
+  });
+
+  it('maxPool2d dilations nhwc', async function() {
+    const builder = new MLGraphBuilder(context);
+    const x = builder.input('x', {type: 'float32', dimensions: [1, 4, 4, 1]});
+    const windowDimensions = [2, 2];
+    const dilations = [2, 2];
+    const layout = 'nhwc';
+    const y = builder.maxPool2d(x, {windowDimensions, dilations, layout});
+    const graph = builder.build({y});
+    const inputBuffer = await utils.createGPUBuffer(device, utils.sizeOfShape([1, 4, 4, 1]), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+	const inputs = {'x': {resource: inputBuffer}};
+    const outputBuffer = await utils.createGPUBuffer(device, utils.sizeOfShape([1, 2, 2, 1]));
+    const outputs = {'y': {resource: outputBuffer}};
+    graph.compute(inputs, outputs);
+    const expected = [11, 12, 15, 16];
+    utils.checkValue(await utils.readbackGPUBuffer(device, utils.sizeOfShape([1, 2, 2, 1]), outputBuffer), expected);
+  });
+
   it('maxPool2d pads default', async function() {
     const builder = new MLGraphBuilder(context);
     const x = builder.input('x', {type: 'float32', dimensions: [1, 1, 5, 5]});
@@ -152,6 +185,168 @@ describe('test pool2d', async function() {
       44,
       46,
       48,
+      49,
+    ];
+    utils.checkValue(await utils.readbackGPUBuffer(device, utils.sizeOfShape([1, 4, 4, 1]), outputBuffer), expected);
+  });
+
+  it('maxPool2d autoPad explicit outputSizes=[3,3] nhwc ', async function() {
+    const builder = new MLGraphBuilder(context);
+    const x = builder.input('x', {type: 'float32', dimensions: [1, 7, 7, 1]});
+    const windowDimensions = [4, 4];
+    const padding = [1, 1, 1, 1];
+    const strides = [2, 2];
+    const autoPad = 'explicit';
+    const layout = 'nhwc';
+    const outputSizes = [3, 3];
+    const y = builder.maxPool2d(
+        x, {windowDimensions, autoPad, padding, strides, layout, outputSizes});
+    const graph = builder.build({y});
+    const inputBuffer = await utils.createGPUBuffer(
+      device, utils.sizeOfShape([1, 7, 7, 1]), 
+	  [
+        1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17,
+        18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
+        35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+      ]);
+    const inputs = {'x': {resource: inputBuffer}};
+    const outputBuffer = await utils.createGPUBuffer(device, utils.sizeOfShape([1, 3, 3, 1]));
+    const outputs = {'y': {resource: outputBuffer}};
+    graph.compute(inputs, outputs);
+    const expected = [
+      17,
+      19,
+      21,
+      31,
+      33,
+      35,
+      45,
+      47,
+      49,
+    ];
+    utils.checkValue(await utils.readbackGPUBuffer(device, utils.sizeOfShape([1, 3, 3, 1]), outputBuffer), expected);
+  });
+
+  it('maxPool2d autoPad explicit outputSizes=[4,4] nhwc ', async function() {
+    const builder = new MLGraphBuilder(context);
+    const x = builder.input('x', {type: 'float32', dimensions: [1, 7, 7, 1]});
+    const windowDimensions = [4, 4];
+    const padding = [1, 1, 1, 1];
+    const strides = [2, 2];
+    const autoPad = 'explicit';
+    const layout = 'nhwc';
+    const outputSizes = [4, 4];
+    const y = builder.maxPool2d(
+        x, {windowDimensions, autoPad, padding, strides, layout, outputSizes});
+    const graph = builder.build({y});
+    const inputBuffer = await utils.createGPUBuffer(
+      device, utils.sizeOfShape([1, 7, 7, 1]), 
+	  [
+        1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17,
+        18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
+        35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+      ]);
+    const inputs = {'x': {resource: inputBuffer}};
+    const outputBuffer = await utils.createGPUBuffer(device, utils.sizeOfShape([1, 4, 4, 1]));
+    const outputs = {'y': {resource: outputBuffer}};	
+    graph.compute(inputs, outputs);
+    const expected = [
+      17,
+      19,
+      21,
+      21,
+      31,
+      33,
+      35,
+      35,
+      45,
+      47,
+      49,
+      49,
+      45,
+      47,
+      49,
+      49,
+    ];
+    utils.checkValue(await utils.readbackGPUBuffer(device, utils.sizeOfShape([1, 4, 4, 1]), outputBuffer), expected);
+  });
+
+  it('maxPool2d autoPad explicit roundingType=floor nhwc', async function() {
+    const builder = new MLGraphBuilder(context);
+    const x = builder.input('x', {type: 'float32', dimensions: [1, 7, 7, 1]});
+    const windowDimensions = [4, 4];
+    const padding = [1, 1, 1, 1];
+    const strides = [2, 2];
+    const autoPad = 'explicit';
+    const layout = 'nhwc';
+    const roundingType = 'floor';
+    const y = builder.maxPool2d(
+        x, {windowDimensions, autoPad, padding, strides, layout, roundingType});
+    const graph = builder.build({y});
+    const inputBuffer = await utils.createGPUBuffer(
+      device, utils.sizeOfShape([1, 7, 7, 1]), 
+	    [
+        1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17,
+        18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
+        35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+      ]);
+    const inputs = {'x': {resource: inputBuffer}};
+    const outputBuffer = await utils.createGPUBuffer(device, utils.sizeOfShape([1, 3, 3, 1]));
+    const outputs = {'y': {resource: outputBuffer}};
+    graph.compute(inputs, outputs);
+    const expected = [
+      17,
+      19,
+      21,
+      31,
+      33,
+      35,
+      45,
+      47,
+      49,
+    ];
+    utils.checkValue(await utils.readbackGPUBuffer(device, utils.sizeOfShape([1, 3, 3, 1]), outputBuffer), expected);
+  });
+
+  it('maxPool2d autoPad explicit roundingType=ceil nhwc', async function() {
+    const builder = new MLGraphBuilder(context);
+    const x = builder.input('x', {type: 'float32', dimensions: [1, 7, 7, 1]});
+    const windowDimensions = [4, 4];
+    const padding = [1, 1, 1, 1];
+    const strides = [2, 2];
+    const autoPad = 'explicit';
+    const layout = 'nhwc';
+    const roundingType = 'ceil';
+    const y = builder.maxPool2d(
+        x, {windowDimensions, autoPad, padding, strides, layout, roundingType});
+    const graph = builder.build({y});
+    const inputBuffer = await utils.createGPUBuffer(
+      device, utils.sizeOfShape([1, 7, 7, 1]), 
+	  [
+        1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17,
+        18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
+        35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+      ]);
+    const inputs = {'x': {resource: inputBuffer}};
+    const outputBuffer = await utils.createGPUBuffer(device, utils.sizeOfShape([1, 4, 4, 1]));
+    const outputs = {'y': {resource: outputBuffer}};
+    graph.compute(inputs, outputs);
+    const expected = [
+      17,
+      19,
+      21,
+      21,
+      31,
+      33,
+      35,
+      35,
+      45,
+      47,
+      49,
+      49,
+      45,
+      47,
+      49,
       49,
     ];
     utils.checkValue(await utils.readbackGPUBuffer(device, utils.sizeOfShape([1, 4, 4, 1]), outputBuffer), expected);
@@ -435,6 +630,168 @@ describe('test pool2d', async function() {
       37.5,
       39.5,
       41,
+    ];
+    utils.checkValue(await utils.readbackGPUBuffer(device, utils.sizeOfShape([1, 4, 4, 1]), outputBuffer), expected);
+  });
+
+  it('averagePool2d autoPad explicit outputSizes=[3,3] nhwc', async function() {
+    const builder = new MLGraphBuilder(context);
+    const x = builder.input('x', {type: 'float32', dimensions: [1, 7, 7, 1]});
+    const windowDimensions = [4, 4];
+    const padding = [1, 1, 1, 1];
+    const strides = [2, 2];
+    const autoPad = 'explicit';
+    const layout = 'nhwc';
+    const outputSizes = [3, 3];
+    const y = builder.averagePool2d(
+        x, {windowDimensions, autoPad, padding, strides, layout, outputSizes});
+    const graph = builder.build({y});
+    const inputBuffer = await utils.createGPUBuffer(
+      device, utils.sizeOfShape([1, 7, 7, 1]), 
+	    [
+        1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17,
+        18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
+        35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+      ]);
+    const inputs = {'x': {resource: inputBuffer}};
+    const outputBuffer = await utils.createGPUBuffer(device, utils.sizeOfShape([1, 3, 3, 1]));
+    const outputs = {'y': {resource: outputBuffer}};
+    graph.compute(inputs, outputs);
+    const expected = [
+      9,
+      10.5,
+      12.5,
+      19.5,
+      21,
+      23,
+      33.5,
+      35,
+      37,
+    ];
+    utils.checkValue(await utils.readbackGPUBuffer(device, utils.sizeOfShape([1, 3, 3, 1]), outputBuffer), expected);
+  });
+
+  it('averagePool2d autoPad explicit outputSizes=[4,4] nhwc', async function() {
+    const builder = new MLGraphBuilder(context);
+    const x = builder.input('x', {type: 'float32', dimensions: [1, 7, 7, 1]});
+    const windowDimensions = [4, 4];
+    const padding = [1, 1, 1, 1];
+    const strides = [2, 2];
+    const autoPad = 'explicit';
+    const layout = 'nhwc';
+    const outputSizes = [4, 4];
+    const y = builder.averagePool2d(
+        x, {windowDimensions, autoPad, padding, strides, layout, outputSizes});
+    const graph = builder.build({y});
+    const inputBuffer = await utils.createGPUBuffer(
+      device, utils.sizeOfShape([1, 7, 7, 1]), 
+	    [
+        1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17,
+        18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
+        35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+      ]);
+    const inputs = {'x': {resource: inputBuffer}};
+    const outputBuffer = await utils.createGPUBuffer(device, utils.sizeOfShape([1, 4, 4, 1]));
+    const outputs = {'y': {resource: outputBuffer}};
+    graph.compute(inputs, outputs);
+    const expected = [
+      9,
+      10.5,
+      12.5,
+      13.5,
+      19.5,
+      21,
+      23,
+      24,
+      33.5,
+      35,
+      37,
+      38,
+      40.5,
+      42,
+      44,
+      45,
+    ];
+    utils.checkValue(await utils.readbackGPUBuffer(device, utils.sizeOfShape([1, 4, 4, 1]), outputBuffer), expected);
+  });
+
+  it('averagePool2d autoPad explicit roundingType=floor nhwc', async function() {
+    const builder = new MLGraphBuilder(context);
+    const x = builder.input('x', {type: 'float32', dimensions: [1, 7, 7, 1]});
+    const windowDimensions = [4, 4];
+    const padding = [1, 1, 1, 1];
+    const strides = [2, 2];
+    const autoPad = 'explicit';
+    const layout = 'nhwc';
+    const roundingType = 'floor';
+    const y = builder.averagePool2d(
+        x, {windowDimensions, autoPad, padding, strides, layout, roundingType});
+    const graph = builder.build({y});
+    const inputBuffer = await utils.createGPUBuffer(
+      device, utils.sizeOfShape([1, 7, 7, 1]), 
+	    [
+        1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17,
+        18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
+        35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+      ]);
+    const inputs = {'x': {resource: inputBuffer}};
+    const outputBuffer = await utils.createGPUBuffer(device, utils.sizeOfShape([1, 3, 3, 1]));
+    const outputs = {'y': {resource: outputBuffer}};
+    graph.compute(inputs, outputs);
+    const expected = [
+      9,
+      10.5,
+      12.5,
+      19.5,
+      21,
+      23,
+      33.5,
+      35,
+      37,
+    ];
+    utils.checkValue(await utils.readbackGPUBuffer(device, utils.sizeOfShape([1, 3, 3, 1]), outputBuffer), expected);
+  });
+
+  it('averagePool2d autoPad explicit roundingType=ceil nhwc', async function() {
+    const builder = new MLGraphBuilder(context);
+    const x = builder.input('x', {type: 'float32', dimensions: [1, 7, 7, 1]});
+    const windowDimensions = [4, 4];
+    const padding = [1, 1, 1, 1];
+    const strides = [2, 2];
+    const autoPad = 'explicit';
+    const layout = 'nhwc';
+    const roundingType = 'ceil';
+    const y = builder.averagePool2d(
+        x, {windowDimensions, autoPad, padding, strides, layout, roundingType});
+    const graph = builder.build({y});
+    const inputBuffer = await utils.createGPUBuffer(
+      device, utils.sizeOfShape([1, 7, 7, 1]), 
+	    [
+        1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17,
+        18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
+        35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+      ]);
+    const inputs = {'x': {resource: inputBuffer}};
+    const outputBuffer = await utils.createGPUBuffer(device, utils.sizeOfShape([1, 4, 4, 1]));
+    const outputs = {'y': {resource: outputBuffer}};
+    graph.compute(inputs, outputs);
+    const expected = [
+      9,
+      10.5,
+      12.5,
+      13.5,
+      19.5,
+      21,
+      23,
+      24,
+      33.5,
+      35,
+      37,
+      38,
+      40.5,
+      42,
+      44,
+      45,
     ];
     utils.checkValue(await utils.readbackGPUBuffer(device, utils.sizeOfShape([1, 4, 4, 1]), outputBuffer), expected);
   });
